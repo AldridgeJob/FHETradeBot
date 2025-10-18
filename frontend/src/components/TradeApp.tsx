@@ -22,7 +22,7 @@ export function TradeApp() {
   const [depositInput, setDepositInput] = useState<string>("");
   const [orders, setOrders] = useState<number>(0);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
-  const [decrypted, setDecrypted] = useState<{ token?: string; amount?: bigint } | null>(null);
+  const [decrypted, setDecrypted] = useState<{ token: string; amount: bigint } | null>(null);
 
   async function fetchOrders() {
     if (!tradeBotAddress || !publicClient) return;
@@ -30,6 +30,7 @@ export function TradeApp() {
       address: tradeBotAddress as `0x${string}`,
       abi: FHETradeBotAbi as any,
       functionName: 'nextOrderId',
+      args: [],
     })) as any;
     setOrders(Number(id));
   }
@@ -107,14 +108,23 @@ export function TradeApp() {
       durationDays,
     );
 
-    setDecrypted({ token: result[encToken], amount: BigInt(result[encAmount]) });
+    const tokenValue = result[encToken];
+    const amountValue = result[encAmount];
+
+    if (!tokenValue || amountValue === undefined) {
+      return;
+    }
+
+    setDecrypted({ token: tokenValue, amount: BigInt(amountValue) });
   }
 
   async function execute(orderId: number) {
-    if (!tradeBotAddress || !decrypted?.token || !decrypted?.amount || !signerPromise) return;
+    if (!tradeBotAddress || !signerPromise || !decrypted) return;
+    const { token, amount } = decrypted;
+    if (!token) return;
     const signer = await signerPromise;
     const contract = new ethers.Contract(tradeBotAddress, FHETradeBotAbi, signer);
-    const tx = await contract.executeOrder(orderId, decrypted.token, decrypted.amount);
+    const tx = await contract.executeOrder(orderId, token, amount);
     await tx.wait();
   }
 
