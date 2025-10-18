@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import { FHETradeBotAbi } from '../abis/FHETradeBot';
 import { useEthersSigner } from '../hooks/useEthersSigner';
 import { useZamaInstance } from '../hooks/useZamaInstance';
+import { contracts } from '../config/contracts';
 
 export function TradeApp() {
   const { address, isConnected } = useAccount();
@@ -12,8 +13,8 @@ export function TradeApp() {
   const signerPromise = useEthersSigner();
   const { instance, isLoading: isZamaLoading, error: zamaError } = useZamaInstance();
 
-  const [botAddress, setBotAddress] = useState<string>("");
-  const [tradeBotAddress, setTradeBotAddress] = useState<string>("");
+  const tradeBotAddress = contracts.tradeBot;
+  const botAddress = contracts.botExecutor;
   const [tokenAddress, setTokenAddress] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [executeAt, setExecuteAt] = useState<string>("");
@@ -126,8 +127,14 @@ export function TradeApp() {
       <section style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 16 }}>
         <h3>Contracts</h3>
         <div style={{ display: 'grid', gap: 8 }}>
-          <input placeholder="TradeBot address (sepolia)" value={tradeBotAddress} onChange={e => setTradeBotAddress(e.target.value)} />
-          <input placeholder="Bot address (should be executor)" value={botAddress} onChange={e => setBotAddress(e.target.value)} />
+          <label style={{ display: 'flex', flexDirection: 'column' }}>
+            <span>TradeBot (Sepolia)</span>
+            <input value={tradeBotAddress} readOnly style={{ color: '#111827' }} />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column' }}>
+            <span>Bot Executor</span>
+            <input value={botAddress} readOnly style={{ color: '#111827' }} />
+          </label>
         </div>
       </section>
 
