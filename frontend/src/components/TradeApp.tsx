@@ -6,6 +6,7 @@ import { FHETradeBotAbi } from '../abis/FHETradeBot';
 import { useEthersSigner } from '../hooks/useEthersSigner';
 import { useZamaInstance } from '../hooks/useZamaInstance';
 import { contracts } from '../config/contracts';
+import '../styles/TradeApp.css';
 
 export function TradeApp() {
   const { address, isConnected } = useAccount();
@@ -118,76 +119,257 @@ export function TradeApp() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2>FHE Trade Bot</h2>
-        <ConnectButton />
+    <div className="trade-app">
+      <header className="app-header">
+        <div className="header-content">
+          <div className="header-left">
+            <div className="logo-container">
+              <div className="logo-icon">🔐</div>
+              <div>
+                <h1 className="app-title">FHE Trade Bot</h1>
+                <p className="app-subtitle">Privacy-First Encrypted Trading</p>
+              </div>
+            </div>
+          </div>
+          <ConnectButton />
+        </div>
       </header>
 
-      <section style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 16 }}>
-        <h3>Contracts</h3>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <label style={{ display: 'flex', flexDirection: 'column' }}>
-            <span>TradeBot (Sepolia)</span>
-            <input value={tradeBotAddress} readOnly style={{ color: '#111827' }} />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column' }}>
-            <span>Bot Executor</span>
-            <input value={botAddress} readOnly style={{ color: '#111827' }} />
-          </label>
-        </div>
-      </section>
+      <div className="main-container">
+        <div className="grid-layout">
+          {/* Left Column */}
+          <div className="left-column">
+            {/* Contracts Info */}
+            <section className="card contracts-card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <span className="icon">📜</span>
+                  Smart Contracts
+                </h3>
+                <span className="badge badge-success">Sepolia</span>
+              </div>
+              <div className="card-body">
+                <div className="input-group">
+                  <label className="input-label">
+                    <span className="label-text">TradeBot Contract</span>
+                    <div className="contract-address">
+                      <input
+                        value={tradeBotAddress}
+                        readOnly
+                        className="input-readonly"
+                      />
+                      <button
+                        className="btn-copy"
+                        onClick={() => navigator.clipboard.writeText(tradeBotAddress)}
+                        title="Copy address"
+                      >
+                        📋
+                      </button>
+                    </div>
+                  </label>
+                  <label className="input-label">
+                    <span className="label-text">Bot Executor</span>
+                    <div className="contract-address">
+                      <input
+                        value={botAddress}
+                        readOnly
+                        className="input-readonly"
+                      />
+                      <button
+                        className="btn-copy"
+                        onClick={() => navigator.clipboard.writeText(botAddress)}
+                        title="Copy address"
+                      >
+                        📋
+                      </button>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </section>
 
-      <section style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 16 }}>
-        <h3>Deposit ETH</h3>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input placeholder="Amount in ETH" value={depositInput} onChange={e => setDepositInput(e.target.value)} />
-          <button onClick={deposit} disabled={!isConnected}>Deposit</button>
-        </div>
-        <div style={{ marginTop: 8 }}>
-          {address && tradeBotAddress && (
-            <AsyncDeposit tradeBotAddress={tradeBotAddress} user={address} getDeposit={getDeposit} />
-          )}
-        </div>
-      </section>
+            {/* Deposit Section */}
+            <section className="card deposit-card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <span className="icon">💰</span>
+                  Deposit ETH
+                </h3>
+                {address && tradeBotAddress && (
+                  <AsyncDeposit tradeBotAddress={tradeBotAddress} user={address} getDeposit={getDeposit} />
+                )}
+              </div>
+              <div className="card-body">
+                <div className="deposit-input-group">
+                  <input
+                    className="input-primary"
+                    placeholder="Amount in ETH (e.g., 0.1)"
+                    value={depositInput}
+                    onChange={e => setDepositInput(e.target.value)}
+                    type="number"
+                    step="0.001"
+                  />
+                  <button
+                    className="btn-primary"
+                    onClick={deposit}
+                    disabled={!isConnected || !depositInput}
+                  >
+                    Deposit
+                  </button>
+                </div>
+                <p className="help-text">
+                  Deposit ETH to fund your encrypted orders
+                </p>
+              </div>
+            </section>
 
-      <section style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 16 }}>
-        <h3>Place Encrypted Order</h3>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <input placeholder="Token address" value={tokenAddress} onChange={e => setTokenAddress(e.target.value)} />
-          <input placeholder="Amount (uint64)" value={amount} onChange={e => setAmount(e.target.value)} />
-          <input placeholder="Execute at (unix seconds)" value={executeAt} onChange={e => setExecuteAt(e.target.value)} />
-          <button onClick={placeOrder} disabled={!isConnected || !instance || isZamaLoading}>Place Order</button>
-        </div>
-        {zamaError && <div style={{ color: 'red', marginTop: 8 }}>{zamaError}</div>}
-      </section>
-
-      <section style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
-        <h3>Bot Panel</h3>
-        <div>Orders: {orders}</div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <input placeholder="Order ID" value={selectedOrderId} onChange={e => setSelectedOrderId(e.target.value)} />
-          <button onClick={() => decryptOrder(Number(selectedOrderId))} disabled={!isConnected || !instance || isZamaLoading}>Decrypt</button>
-          <button onClick={() => execute(Number(selectedOrderId))} disabled={!isConnected || !decrypted}>Execute</button>
-        </div>
-        {decrypted && (
-          <div style={{ marginTop: 8 }}>
-            <div>Decrypted token: {decrypted.token}</div>
-            <div>Decrypted amount: {decrypted.amount.toString()}</div>
+            {/* Usage Guide */}
+            <section className="card guide-card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <span className="icon">📖</span>
+                  Quick Start Guide
+                </h3>
+              </div>
+              <div className="card-body">
+                <ol className="guide-list">
+                  <li>
+                    <span className="step-number">1</span>
+                    <span>Connect your wallet using the button above</span>
+                  </li>
+                  <li>
+                    <span className="step-number">2</span>
+                    <span>Deposit ETH to fund your trading account</span>
+                  </li>
+                  <li>
+                    <span className="step-number">3</span>
+                    <span>Place an encrypted order with token details</span>
+                  </li>
+                  <li>
+                    <span className="step-number">4</span>
+                    <span>Wait for execution time or use bot panel</span>
+                  </li>
+                </ol>
+              </div>
+            </section>
           </div>
-        )}
-      </section>
 
-      <section style={{ background: '#fff', padding: 16, borderRadius: 8, marginTop: 16 }}>
-        <h3>Usage Guide</h3>
-        <ol style={{ margin: 0, paddingLeft: 20, color: '#4b5563', lineHeight: 1.6 }}>
-          <li>Connect your wallet with the button in the header.</li>
-          <li>Review the deployed TradeBot and bot executor addresses above.</li>
-          <li>Deposit the ETH amount you want the bot to spend.</li>
-          <li>Provide the encrypted order details and the execution timestamp, then place the order.</li>
-          <li>When the execution window opens, decrypt and execute the order from the bot panel.</li>
-        </ol>
-      </section>
+          {/* Right Column */}
+          <div className="right-column">
+            {/* Place Order */}
+            <section className="card order-card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <span className="icon">🔒</span>
+                  Place Encrypted Order
+                </h3>
+                <span className="badge badge-primary">FHE Protected</span>
+              </div>
+              <div className="card-body">
+                <div className="form-group">
+                  <label className="input-label">
+                    <span className="label-text">Token Address</span>
+                    <input
+                      className="input-primary"
+                      placeholder="0x..."
+                      value={tokenAddress}
+                      onChange={e => setTokenAddress(e.target.value)}
+                    />
+                  </label>
+                  <label className="input-label">
+                    <span className="label-text">Amount (uint64)</span>
+                    <input
+                      className="input-primary"
+                      placeholder="1000"
+                      value={amount}
+                      onChange={e => setAmount(e.target.value)}
+                      type="number"
+                    />
+                  </label>
+                  <label className="input-label">
+                    <span className="label-text">Execute At (Unix Timestamp)</span>
+                    <input
+                      className="input-primary"
+                      placeholder={Math.floor(Date.now() / 1000 + 3600).toString()}
+                      value={executeAt}
+                      onChange={e => setExecuteAt(e.target.value)}
+                      type="number"
+                    />
+                    <span className="help-text-small">
+                      Current: {Math.floor(Date.now() / 1000)} (+1h: {Math.floor(Date.now() / 1000 + 3600)})
+                    </span>
+                  </label>
+                  <button
+                    className="btn-primary btn-large"
+                    onClick={placeOrder}
+                    disabled={!isConnected || !instance || isZamaLoading}
+                  >
+                    {isZamaLoading ? '🔄 Loading FHE...' : '🚀 Place Encrypted Order'}
+                  </button>
+                </div>
+                {zamaError && (
+                  <div className="alert alert-error">
+                    ⚠️ {zamaError}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Bot Panel */}
+            <section className="card bot-card">
+              <div className="card-header">
+                <h3 className="card-title">
+                  <span className="icon">🤖</span>
+                  Bot Control Panel
+                </h3>
+                <span className="badge badge-info">Orders: {orders}</span>
+              </div>
+              <div className="card-body">
+                <div className="form-group">
+                  <label className="input-label">
+                    <span className="label-text">Order ID</span>
+                    <input
+                      className="input-primary"
+                      placeholder="0"
+                      value={selectedOrderId}
+                      onChange={e => setSelectedOrderId(e.target.value)}
+                      type="number"
+                    />
+                  </label>
+                  <div className="button-group">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => decryptOrder(Number(selectedOrderId))}
+                      disabled={!isConnected || !instance || isZamaLoading || !selectedOrderId}
+                    >
+                      🔓 Decrypt Order
+                    </button>
+                    <button
+                      className="btn-success"
+                      onClick={() => execute(Number(selectedOrderId))}
+                      disabled={!isConnected || !decrypted || !selectedOrderId}
+                    >
+                      ✅ Execute Order
+                    </button>
+                  </div>
+                </div>
+                {decrypted && (
+                  <div className="decrypted-info">
+                    <div className="info-item">
+                      <span className="info-label">Decrypted Token:</span>
+                      <code className="info-value">{decrypted.token}</code>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Decrypted Amount:</span>
+                      <code className="info-value">{decrypted.amount.toString()}</code>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -199,5 +381,9 @@ function AsyncDeposit({ tradeBotAddress, user, getDeposit }: { tradeBotAddress: 
       setDep(await getDeposit(user));
     })();
   }, [tradeBotAddress, user]);
-  return <div>Deposit: {dep !== null ? `${ethers.formatEther(dep)} ETH` : '...'}</div>;
+  return (
+    <span className="balance-badge">
+      💎 {dep !== null ? `${ethers.formatEther(dep)} ETH` : '...'}
+    </span>
+  );
 }
