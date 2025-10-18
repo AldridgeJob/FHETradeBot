@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, usePublicClient } from 'wagmi';
 import { ethers } from 'ethers';
-import { createInstance, SepoliaConfig } from '@zama-fhe/relayer-sdk';
 import { FHETradeBotAbi } from '../abis/FHETradeBot';
-import { MockMintableTokenAbi } from '../abis/MockMintableToken';
-
-type OrderMeta = { buyer: string; executeAt: bigint; executed: boolean };
+import { useEthersSigner } from '../hooks/useEthersSigner';
+import { useZamaInstance } from '../hooks/useZamaInstance';
 
 export function TradeApp() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+  const signerPromise = useEthersSigner();
+  const { instance, isLoading: isZamaLoading, error: zamaError } = useZamaInstance();
 
   const [botAddress, setBotAddress] = useState<string>("");
   const [tradeBotAddress, setTradeBotAddress] = useState<string>("");
@@ -21,22 +21,6 @@ export function TradeApp() {
   const [orders, setOrders] = useState<number>(0);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [decrypted, setDecrypted] = useState<{ token?: string; amount?: bigint } | null>(null);
-
-  const [instance, setInstance] = useState<any>(null);
-
-  useEffect(() => {
-    (async () => {
-      const inst = await createInstance(SepoliaConfig);
-      setInstance(inst);
-    })();
-  }, []);
-
-  const ethersProvider = useMemo(() => {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      return new ethers.BrowserProvider((window as any).ethereum);
-    }
-    return null;
-  }, []);
 
   async function fetchOrders() {
     if (!tradeBotAddress || !publicClient) return;
@@ -53,17 +37,17 @@ export function TradeApp() {
   }, [tradeBotAddress, publicClient]);
 
   async function deposit() {
-    if (!ethersProvider || !tradeBotAddress || !depositInput) return;
-    const signer = await ethersProvider.getSigner();
+    if (!tradeBotAddress || !depositInput || !signerPromise) return;
+    const signer = await signerPromise;
     const contract = new ethers.Contract(tradeBotAddress, FHETradeBotAbi, signer);
     const tx = await contract.deposit({ value: ethers.parseEther(depositInput) });
     await tx.wait();
   }
 
   async function placeOrder() {
-    if (!ethersProvider || !tradeBotAddress || !instance) return;
+    if (!tradeBotAddress || !instance || !signerPromise) return;
     if (!tokenAddress || !amount || !executeAt) return;
-    const signer = await ethersProvider.getSigner();
+    const signer = await signerPromise;
     const input = instance.createEncryptedInput(tradeBotAddress, await signer.getAddress());
     input.addAddress(tokenAddress);
     input.add64(BigInt(amount));
@@ -86,8 +70,8 @@ export function TradeApp() {
   }
 
   async function decryptOrder(orderId: number) {
-    if (!publicClient || !tradeBotAddress || !instance || !ethersProvider) return;
-    const signer = await ethersProvider.getSigner();
+    if (!publicClient || !tradeBotAddress || !instance || !signerPromise) return;
+    const signer = await signerPromise;
     const [encToken, encAmount] = (await publicClient.readContract({
       address: tradeBotAddress as `0x${string}`,
       abi: FHETradeBotAbi as any,
@@ -125,8 +109,8 @@ export function TradeApp() {
   }
 
   async function execute(orderId: number) {
-    if (!ethersProvider || !tradeBotAddress || !decrypted?.token || !decrypted?.amount) return;
-    const signer = await ethersProvider.getSigner();
+    if (!tradeBotAddress || !decrypted?.token || !decrypted?.amount || !signerPromise) return;
+    const signer = await signerPromise;
     const contract = new ethers.Contract(tradeBotAddress, FHETradeBotAbi, signer);
     const tx = await contract.executeOrder(orderId, decrypted.token, decrypted.amount);
     await tx.wait();
@@ -166,8 +150,9 @@ export function TradeApp() {
           <input placeholder="Token address" value={tokenAddress} onChange={e => setTokenAddress(e.target.value)} />
           <input placeholder="Amount (uint64)" value={amount} onChange={e => setAmount(e.target.value)} />
           <input placeholder="Execute at (unix seconds)" value={executeAt} onChange={e => setExecuteAt(e.target.value)} />
-          <button onClick={placeOrder} disabled={!isConnected}>Place Order</button>
+          <button onClick={placeOrder} disabled={!isConnected || !instance || isZamaLoading}>Place Order</button>
         </div>
+        {zamaError && <div style={{ color: 'red', marginTop: 8 }}>{zamaError}</div>}
       </section>
 
       <section style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
@@ -175,7 +160,7 @@ export function TradeApp() {
         <div>Orders: {orders}</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <input placeholder="Order ID" value={selectedOrderId} onChange={e => setSelectedOrderId(e.target.value)} />
-          <button onClick={() => decryptOrder(Number(selectedOrderId))} disabled={!isConnected}>Decrypt</button>
+          <button onClick={() => decryptOrder(Number(selectedOrderId))} disabled={!isConnected || !instance || isZamaLoading}>Decrypt</button>
           <button onClick={() => execute(Number(selectedOrderId))} disabled={!isConnected || !decrypted}>Execute</button>
         </div>
         {decrypted && (
@@ -198,4 +183,3 @@ function AsyncDeposit({ tradeBotAddress, user, getDeposit }: { tradeBotAddress: 
   }, [tradeBotAddress, user]);
   return <div>Deposit: {dep !== null ? `${ethers.formatEther(dep)} ETH` : '...'}</div>;
 }
-
