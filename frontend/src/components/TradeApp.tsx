@@ -177,6 +177,17 @@ export function TradeApp() {
           </div>
         )}
       </section>
+
+      <section style={{ background: '#fff', padding: 16, borderRadius: 8, marginTop: 16 }}>
+        <h3>Usage Guide</h3>
+        <ol style={{ margin: 0, paddingLeft: 20, color: '#4b5563', lineHeight: 1.6 }}>
+          <li>Connect your wallet with the button in the header.</li>
+          <li>Review the deployed TradeBot and bot executor addresses above.</li>
+          <li>Deposit the ETH amount you want the bot to spend.</li>
+          <li>Provide the encrypted order details and the execution timestamp, then place the order.</li>
+          <li>When the execution window opens, decrypt and execute the order from the bot panel.</li>
+        </ol>
+      </section>
     </div>
   );
 }
