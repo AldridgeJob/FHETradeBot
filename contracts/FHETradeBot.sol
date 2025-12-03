@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import {FHE, eaddress, euint64, externalEaddress, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
-import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 interface IMintableERC20 {
     function mint(address to, uint256 amount) external;
 }
 
-contract FHETradeBot is SepoliaConfig {
+contract FHETradeBot is ZamaEthereumConfig {
     struct Order {
         // Encrypted fields
         eaddress encToken;
